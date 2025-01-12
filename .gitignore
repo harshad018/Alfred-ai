@@ -30,6 +30,11 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+# .gitignore
+.local-chrome/131.0.6778.204/chrome-linux64/chrome
+# Add other large files here
+
+
 
 # Symbolication related
 app.*.symbols

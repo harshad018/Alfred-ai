@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:alfred/core/browser.dart';
 import 'package:alfred/models/visual_elements.dart';
 import 'package:logging/logging.dart';
