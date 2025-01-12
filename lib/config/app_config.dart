@@ -1,9 +1,15 @@
 class AppConfig {
-  static final DateTime currentUtcTime = DateTime.utc(2025, 1, 12, 4, 50, 25);
-  static const String currentUserLogin = 'ASHISHx021';
-  
-  static const Map<String, String> defaultHeaders = {
-    'User-Agent': 'BrowserAgent/1.0',
-    'X-User': 'ASHISHx021',
-  };
+  static late String _currentUserLogin;
+  static late DateTime _currentUtcTime;
+
+  static String get currentUserLogin => _currentUserLogin;
+  static DateTime get currentUtcTime => _currentUtcTime;
+
+  static void initialize({
+    required String currentUserLogin,
+    required DateTime currentUtcTime,
+  }) {
+    _currentUserLogin = currentUserLogin;
+    _currentUtcTime = currentUtcTime;
+  }
 }

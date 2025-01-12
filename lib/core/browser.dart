@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:puppeteer/puppeteer.dart' as p;
 import '../models/browser_state.dart';
 import '../config/app_config.dart';
@@ -27,6 +28,16 @@ class BrowserConfig {
 class Browser {
   p.Browser? _browser;
   p.Page? _page;
+
+    // Add protected getter for page access
+  @protected
+  p.Page? get page => _page;
+
+   // Add protected setter for page
+  @protected
+  set page(p.Page? value) {
+    _page = value;
+  }
   final _logger = Logger('Browser');
   final List<String> _navigationHistory = [];
 
@@ -57,7 +68,7 @@ class Browser {
       await _page!.setViewport(viewport);
 
       // Set default headers
-      await _page!.setExtraHTTPHeaders(AppConfig.defaultHeaders);
+      
 
       _logger.info('[${AppConfig.currentUserLogin}] Browser initialized successfully');
     } catch (e, stackTrace) {

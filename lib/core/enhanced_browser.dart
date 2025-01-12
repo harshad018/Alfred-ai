@@ -1,17 +1,25 @@
-import 'dart:math';
-
+import 'package:alfred/config/app_config.dart';
 import 'package:alfred/core/browser.dart';
 import 'package:alfred/models/visual_elements.dart';
+import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:puppeteer/puppeteer.dart' as p;
+import 'dart:math' show Point;  // Add this import for Point class
 
 class EnhancedBrowser extends Browser {
   final _logger = Logger('EnhancedBrowser');
-  
+
+  // Protected method to access the page
+ // Access the page through the parent's protected getter
+
+  p.Page? get _currentPage => page;
+
   Future<List<VisualElement>> getVisibleElements() async {
-    if (_page == null) return [];
+    final currentPage = _currentPage;
+    if (currentPage == null) return [];
 
     try {
-      final result = await _page!.evaluate('''
+      final result = await currentPage.evaluate('''
         () => {
           function isElementVisible(element) {
             const style = window.getComputedStyle(element);
@@ -64,40 +72,50 @@ class EnhancedBrowser extends Browser {
         }
       ''');
 
+     if (result == null) return [];
+
       return (result as List).map((e) => VisualElement(
-        selector: e['selector'],
-        text: e['text'],
+        selector: e['selector'] as String? ?? '',
+        text: e['text'] as String? ?? '',
         boundingBox: BoundingBox(
-          x: e['boundingBox']['x'],
-          y: e['boundingBox']['y'],
-          width: e['boundingBox']['width'],
-          height: e['boundingBox']['height'],
+          x: (e['boundingBox']['x'] as num?)?.toDouble() ?? 0.0,
+          y: (e['boundingBox']['y'] as num?)?.toDouble() ?? 0.0,
+          width: (e['boundingBox']['width'] as num?)?.toDouble() ?? 0.0,
+          height: (e['boundingBox']['height'] as num?)?.toDouble() ?? 0.0,
         ),
-        isVisible: e['isVisible'],
-        isClickable: e['isClickable'],
-        attributes: Map<String, String>.from(e['attributes']),
+        isVisible: e['isVisible'] as bool? ?? true,
+        isClickable: e['isClickable'] as bool? ?? false,
+        attributes: Map<String, String>.from(e['attributes'] as Map? ?? {}),
       )).toList();
-    } catch (e) {
-      _logger.severe('Failed to get visible elements', e);
+    } catch (e, stackTrace) {
+      _logger.severe('[${AppConfig.currentUserLogin}] Failed to get visible elements', e, stackTrace);
       return [];
     }
   }
 
   Future<bool> clickElementByVisualLocation(double x, double y) async {
+    final page = _currentPage;
+    if (page == null) return false;
+    
     try {
-      await _page!.mouse.move(x, y);
-      await _page!.mouse.down();
-      await _page!.mouse.up();
+       final position = Point(x, y);
+      
+      // Move to position using Point object
+      await _currentPage?.mouse.move(position);
+      await _currentPage?.mouse.down();
       return true;
-    } catch (e) {
-      _logger.warning('Failed to click at ($x, $y)', e);
+    } catch (e, stackTrace) {
+      _logger.warning('[${AppConfig.currentUserLogin}] Failed to click at ($x, $y)', e, stackTrace);
       return false;
     }
   }
 
   Future<bool> smoothScroll(double targetY, {Duration? duration}) async {
+    final page = _currentPage;
+    if (page == null) return false;
+    
     try {
-      await _page!.evaluate('''
+      await page.evaluate('''
         (targetY, duration) => {
           return new Promise((resolve) => {
             const startY = window.scrollY;
@@ -128,48 +146,9 @@ class EnhancedBrowser extends Browser {
         }
       ''', args: [targetY, duration?.inMilliseconds ?? 1000]);
       return true;
-    } catch (e) {
-      _logger.warning('Failed to smooth scroll', e);
+    } catch (e, stackTrace) {
+      _logger.warning('[${AppConfig.currentUserLogin}] Failed to smooth scroll', e, stackTrace);
       return false;
     }
   }
 }
-
-// lib/core/retry_strategy.dart
-class RetryStrategy {
-  final int maxAttempts;
-  final Duration initialDelay;
-  final double backoffFactor;
-  final Duration maxDelay;
-
-  RetryStrategy({
-    this.maxAttempts = 3,
-    this.initialDelay = const Duration(seconds: 1),
-    this.backoffFactor = 2.0,
-    this.maxDelay = const Duration(seconds: 10),
-  });
-
-  Future<T> execute<T>(Future<T> Function() action) async {
-    int attempts = 0;
-    Duration currentDelay = initialDelay;
-    
-    while (true) {
-      try {
-        attempts++;
-        return await action();
-      } catch (e) {
-        if (attempts >= maxAttempts) rethrow;
-        
-        await Future.delayed(currentDelay);
-        currentDelay = Duration(
-          milliseconds: min(
-            (currentDelay.inMilliseconds * backoffFactor).round(),
-            maxDelay.inMilliseconds,
-          ),
-        );
-      }
-    }
-  }
-}
-
-// lib/agents/visual_agent.dart

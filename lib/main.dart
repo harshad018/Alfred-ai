@@ -1,11 +1,20 @@
+import 'package:alfred/agents/visual_agent.dart';
+import 'package:alfred/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'core/agent.dart';
 import 'core/browser.dart';
 import 'models/browser_state.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize AppConfig with current user and time
+  AppConfig.initialize(
+    currentUserLogin: 'ASHISHx021',
+    currentUtcTime: DateTime.utc(2025, 1, 12, 17, 16, 37),
+  );
 
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
@@ -14,7 +23,6 @@ void main() async {
 
   runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -67,9 +75,9 @@ class _BrowserAgentHomeState extends State<BrowserAgentHome> {
         deviceScaleFactor: 1.0,
       );
 
-      final agent = Agent(
+      final agent = VisualAgent( // Changed from Agent to VisualAgent
         task: _taskController.text,
-        geminiApiKey: "AIzaSyAz6opsU5WarrGmNUZBr0obeG3GAc_g8qQ",  // Replace with your API key
+        geminiApiKey: "AIzaSyAz6opsU5WarrGmNUZBr0obeG3GAc_g8qQ",
         browserConfig: browserConfig,
         maxSteps: 25,
       );
@@ -85,10 +93,7 @@ class _BrowserAgentHomeState extends State<BrowserAgentHome> {
       final agentResult = await agent.run();
       
       setState(() {
-        if (agentResult.informationFound != null) {
-          _informationFound = agentResult.informationFound!;
-        }
-        
+        _informationFound = agentResult.informationFound; // Remove null check since it's non-nullable
         _result += '\n\nTask Summary:\n${agentResult.summary}';
         
         if (agentResult.error != null) {
@@ -98,7 +103,7 @@ class _BrowserAgentHomeState extends State<BrowserAgentHome> {
 
       await agent.dispose();
     } catch (e, stackTrace) {
-      _logger.severe('Error during agent execution', e, stackTrace);
+      _logger.severe('[${AppConfig.currentUserLogin}] Error during agent execution', e, stackTrace);
       setState(() {
         _result = 'Error: $e';
       });
